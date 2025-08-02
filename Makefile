@@ -5,11 +5,14 @@ LOCAL_BINARY := $(CURDIR)/bin
 
 GO := $(shell which go)
 
+.PHONY: all
+all: build
+
 .PHONY: build
 build: clean
 	@echo "Building $(APPLICATION_NAME)..."
 	@mkdir -p $(LOCAL_BINARY)
-	$(GO) build -o $(LOCAL_BINARY)/$(APPLICATION_NAME) ./cmd/api/main.$(GO)
+	$(GO) build -o $(LOCAL_BINARY)/$(APPLICATION_NAME) ./cmd/api/main.go
 
 .PHONY: clean
 clean:
