@@ -8,3 +8,4 @@ coverage.*
 profile.cov
 
 .env
+config.yaml
