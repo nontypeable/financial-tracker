@@ -6,12 +6,9 @@ import (
 	"strings"
 
 	"github.com/nontypeable/financial-tracker/internal/auth"
+	contextKeys "github.com/nontypeable/financial-tracker/internal/context"
 	httpHelper "github.com/nontypeable/financial-tracker/internal/http"
 )
-
-type contextKey string
-
-const UserIDKey contextKey = "user_id"
 
 func AuthMiddleware(tokenManager auth.TokenManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -31,7 +28,7 @@ func AuthMiddleware(tokenManager auth.TokenManager) func(http.Handler) http.Hand
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserIDKey, claims.Subject)
+			ctx := context.WithValue(r.Context(), contextKeys.UserIDKey, claims.Subject)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
