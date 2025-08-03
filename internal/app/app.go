@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	customMiddleware "github.com/nontypeable/financial-tracker/internal/app/middleware"
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/config"
 	userDelivery "github.com/nontypeable/financial-tracker/internal/delivery/user"
@@ -54,11 +55,12 @@ func (app *App) setupRoutes(cfg *config.Config, db *sql.DB) {
 	})
 
 	tokenManager := auth.NewTokenManager(cfg.TokenManager.AccessSecret, cfg.TokenManager.RefreshSecret, cfg.TokenManager.AccessTTL, cfg.TokenManager.RefreshTTL)
+	authMiddleware := customMiddleware.AuthMiddleware(tokenManager)
 
 	userRepository := userRepository.NewRepository(db)
 	userUsecase := userUsecase.NewService(userRepository, tokenManager)
 	userHandler := userDelivery.NewHandler(userUsecase)
-	userHandler.RegisterRoutes(app.router)
+	userHandler.RegisterRoutes(app.router, authMiddleware)
 }
 
 func (app *App) Start() error {

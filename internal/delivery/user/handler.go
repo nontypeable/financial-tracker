@@ -22,7 +22,7 @@ func NewHandler(service user.Service) *handler {
 	}
 }
 
-func (h *handler) RegisterRoutes(r chi.Router) {
+func (h *handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler) http.Handler) {
 	r.Route("/user", func(r chi.Router) {
 		r.Post("/sign-up", h.signUp)
 		r.Post("/sign-in", h.signIn)
