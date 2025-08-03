@@ -158,3 +158,15 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	return nil
 }
+
+func (r *repository) EmailExists(ctx context.Context, email string) (bool, error) {
+	const query = `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND deleted_at IS NULL);`
+
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, email).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check email existence: %w", err)
+	}
+
+	return exists, nil
+}
