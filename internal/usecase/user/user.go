@@ -2,11 +2,13 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/domain/user"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -114,4 +116,47 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, firstName, lastName 
 	}
 
 	return nil
+}
+
+func (s *service) ChangeEmail(ctx context.Context, id uuid.UUID, newEmail string, currentPassword string) error {
+	user, err := s.repository.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+		return fmt.Errorf("invalid credentials")
+	}
+
+	exists, err := s.repository.EmailExists(ctx, newEmail)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("email already in use")
+	}
+
+	user.Email = newEmail
+
+	return s.repository.Update(ctx, user)
+}
+
+func (s *service) ChangePassword(ctx context.Context, id uuid.UUID, newPassword string, currentPassword string) error {
+	user, err := s.repository.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+		return fmt.Errorf("invalid credentials")
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashed)
+
+	return s.repository.Update(ctx, user)
 }

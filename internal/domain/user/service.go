@@ -11,4 +11,6 @@ type Service interface {
 	SignIn(ctx context.Context, email, password string) (string, string, error)
 	Refresh(ctx context.Context, refreshToken string) (string, string, error)
 	Update(ctx context.Context, id uuid.UUID, firstName, lastName string) error
+	ChangeEmail(ctx context.Context, id uuid.UUID, newEmail string, currentPassword string) error
+	ChangePassword(ctx context.Context, id uuid.UUID, newPassword string, currentPassword string) error
 }
