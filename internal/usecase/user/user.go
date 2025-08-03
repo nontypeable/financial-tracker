@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/domain/user"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -90,30 +89,24 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (string, str
 	return accessToken, refreshToken, nil
 }
 
-func (s *service) Update(ctx context.Context, id uuid.UUID, email, password, firstName, lastName string) error {
+func (s *service) Update(ctx context.Context, id uuid.UUID, firstName, lastName string) error {
 	user, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if email != "" {
-		user.Email = email
-	}
+	var updated bool
 
-	if password != "" {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			return err
-		}
-		user.PasswordHash = string(hashedPassword)
-	}
-
-	if firstName != "" {
+	if firstName != "" && firstName != user.FirstName {
 		user.FirstName = firstName
 	}
 
-	if lastName != "" {
+	if lastName != "" && lastName != user.LastName {
 		user.LastName = lastName
+	}
+
+	if !updated {
+		return nil
 	}
 
 	if err := s.repository.Update(ctx, user); err != nil {
