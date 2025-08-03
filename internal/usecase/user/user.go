@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/domain/user"
 )
@@ -62,6 +63,25 @@ func (s *service) SignIn(ctx context.Context, email, password string) (string, s
 	}
 
 	refreshToken, err := s.tokenManager.GenerateRefreshToken(userID)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *service) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
+	token, err := s.tokenManager.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	accessToken, err := s.tokenManager.GenerateAccessToken(uuid.Must(uuid.Parse(token.Subject)))
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err = s.tokenManager.GenerateRefreshToken(uuid.Must(uuid.Parse(token.Subject)))
 	if err != nil {
 		return "", "", err
 	}
