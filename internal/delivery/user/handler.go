@@ -94,5 +94,5 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
-	httpHelper.JSON(w, http.StatusCreated, &dto.SignInResponse{AccessToken: accessToken})
+	httpHelper.JSON(w, http.StatusOK, &dto.SignInResponse{AccessToken: accessToken})
 }
