@@ -18,18 +18,27 @@ func NewRepository(db *sql.DB) user.Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, u *user.User) error {
+func (r *repository) Create(ctx context.Context, user *user.User) (uuid.UUID, error) {
 	query := `
         INSERT INTO users (email, password_hash, first_name, last_name)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, created_at, updated_at
+        RETURNING id
     `
-	return r.db.QueryRowContext(ctx, query,
-		u.Email,
-		u.PasswordHash,
-		u.FirstName,
-		u.LastName,
-	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+
+	var id uuid.UUID
+
+	err := r.db.QueryRowContext(ctx, query,
+		user.Email,
+		user.PasswordHash,
+		user.FirstName,
+		user.LastName,
+	).Scan(&id)
+
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
