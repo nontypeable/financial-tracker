@@ -25,6 +25,7 @@ func NewHandler(service user.Service) *handler {
 func (h *handler) RegisterRoutes(r chi.Router) {
 	r.Route("/user", func(r chi.Router) {
 		r.Post("/sign-up", h.signUp)
+		r.Post("/sign-in", h.signIn)
 	})
 }
 
@@ -63,4 +64,35 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 	})
 
 	httpHelper.JSON(w, http.StatusCreated, &dto.SignUpResponse{AccessToken: accessToken})
+}
+
+func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
+	var payload dto.SignInRequest
+	err := httpHelper.DecodeAndValidate(r, &payload)
+	if err != nil {
+		httpHelper.Error(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+
+	accessToken, refreshToken, err := h.service.SignIn(
+		r.Context(),
+		payload.Email,
+		payload.Password,
+	)
+	if err != nil {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/user/refresh",
+		Expires:  time.Now().Add(30 * 24 * time.Hour),
+	})
+
+	httpHelper.JSON(w, http.StatusCreated, &dto.SignInResponse{AccessToken: accessToken})
 }
