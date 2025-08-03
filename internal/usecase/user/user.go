@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/domain/user"
@@ -36,6 +37,31 @@ func (s *service) SignUp(ctx context.Context, email, password, firstName, lastNa
 	}
 
 	refreshToken, err := s.tokenManager.GenerateRefreshToken(id)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *service) SignIn(ctx context.Context, email, password string) (string, string, error) {
+	user, err := s.repository.GetByEmail(ctx, email)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get user by email: %w", err)
+	}
+
+	if !user.CheckPassword(password) {
+		return "", "", fmt.Errorf("incorrect password")
+	}
+
+	userID := user.ID
+
+	accessToken, err := s.tokenManager.GenerateAccessToken(userID)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := s.tokenManager.GenerateRefreshToken(userID)
 	if err != nil {
 		return "", "", err
 	}
