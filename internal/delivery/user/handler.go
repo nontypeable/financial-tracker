@@ -26,6 +26,7 @@ func (h *handler) RegisterRoutes(r chi.Router) {
 	r.Route("/user", func(r chi.Router) {
 		r.Post("/sign-up", h.signUp)
 		r.Post("/sign-in", h.signIn)
+		r.Post("/refresh", h.refresh)
 	})
 }
 
@@ -95,4 +96,30 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 	})
 
 	httpHelper.JSON(w, http.StatusOK, &dto.SignInResponse{AccessToken: accessToken})
+}
+
+func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		httpHelper.Error(w, http.StatusUnauthorized, "missing refresh token")
+		return
+	}
+
+	accessToken, refreshToken, err := h.service.Refresh(r.Context(), cookie.Value)
+	if err != nil {
+		httpHelper.Error(w, http.StatusUnauthorized, "invalid refresh token")
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/user/auth/refresh",
+		Expires:  time.Now().Add(30 * 24 * time.Hour),
+	})
+
+	httpHelper.JSON(w, http.StatusOK, &dto.RefreshResponse{AccessToken: accessToken})
 }
