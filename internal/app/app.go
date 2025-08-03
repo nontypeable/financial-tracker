@@ -14,6 +14,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/config"
+	userDelivery "github.com/nontypeable/financial-tracker/internal/delivery/user"
+	userRepository "github.com/nontypeable/financial-tracker/internal/repository/user"
+	userUsecase "github.com/nontypeable/financial-tracker/internal/usecase/user"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -51,8 +54,11 @@ func (app *App) setupRoutes(cfg *config.Config, db *sql.DB) {
 	})
 
 	tokenManager := auth.NewTokenManager(cfg.TokenManager.AccessSecret, cfg.TokenManager.RefreshSecret, cfg.TokenManager.AccessTTL, cfg.TokenManager.RefreshTTL)
-	_ = tokenManager
-	_ = db
+
+	userRepository := userRepository.NewRepository(db)
+	userUsecase := userUsecase.NewService(userRepository, tokenManager)
+	userHandler := userDelivery.NewHandler(userUsecase)
+	userHandler.RegisterRoutes(app.router)
 }
 
 func (app *App) Start() error {
