@@ -6,3 +6,12 @@ database:
   db_name: postgres
   ssl_mode: required
 
+server:
+  address: 0.0.0.0:8000
+  shutdown_timeout: 30s
+
+token_manager:
+  access_secret: <access_secret>
+  refresh_secret: <refresh_secret>
+  access_ttl: 15m
+  refresh_ttl: 720h

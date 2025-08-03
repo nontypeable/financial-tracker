@@ -1,41 +1,52 @@
 package config
 
 import (
-	"log"
-	"os"
+	"time"
 
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/spf13/viper"
 )
 
 type (
 	Config struct {
-		Database *DatabaseConfig `yaml:"database"`
+		Database     *DatabaseConfig     `mapstructure:"database"`
+		Server       *ServerConfig       `mapstructure:"server"`
+		TokenManager *TokenManagerConfig `mapstructure:"token_manager"`
+	}
+
+	ServerConfig struct {
+		Address         string        `mapstructure:"address"`
+		ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
+	}
+
+	TokenManagerConfig struct {
+		AccessSecret  string        `mapstructure:"access_secret"`
+		RefreshSecret string        `mapstructure:"refresh_secret"`
+		AccessTTL     time.Duration `mapstructure:"access_ttl"`
+		RefreshTTL    time.Duration `mapstructure:"refresh_ttl"`
 	}
 
 	DatabaseConfig struct {
-		Host     string `yaml:"host"`
-		Port     int    `yaml:"port"`
-		User     string `yaml:"user"`
-		Password string `yaml:"password"`
-		DBName   string `yaml:"db_name"`
-		SSLMode  string `yaml:"ssl_mode"`
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		User     string `mapstructure:"user"`
+		Password string `mapstructure:"password"`
+		DBName   string `mapstructure:"db_name"`
+		SSLMode  string `mapstructure:"ssl_mode"`
 	}
 )
 
-func MustLoad() *Config {
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath == "" {
-		log.Fatal("$CONFIG_PATH is not set")
-	}
-
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatal("config file is not exists")
+func LoadConfig(path string) (*Config, error) {
+	v := viper.New()
+	v.SetConfigFile(path)
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
 	}
 
 	var cfg Config
-	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Fatal("cannot read config")
+	err := v.Unmarshal(&cfg)
+	if err != nil {
+		return nil, err
 	}
 
-	return &cfg
+	return &cfg, nil
 }
