@@ -8,15 +8,13 @@ import (
 
 func ValidatePassword(fl validator.FieldLevel) bool {
 	password := fl.Field().String()
+	length := len(password)
 
-	if len(password) > 72 {
+	if length < 8 || length > 72 {
 		return false
 	}
 
-	hasUpper := false
-	hasLower := false
-	hasDigit := false
-	hasSpecial := false
+	var hasUpper, hasLower, hasDigit, hasSpecial bool
 
 	for _, char := range password {
 		switch {
@@ -26,10 +24,10 @@ func ValidatePassword(fl validator.FieldLevel) bool {
 			hasLower = true
 		case unicode.IsDigit(char):
 			hasDigit = true
-		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+		case unicode.IsPunct(char), unicode.IsSymbol(char):
 			hasSpecial = true
 		}
 	}
 
-	return (len(password) >= 8 && len(password) <= 72) && (hasUpper && hasLower && hasDigit && hasSpecial)
+	return hasUpper && hasLower && hasDigit && hasSpecial
 }
