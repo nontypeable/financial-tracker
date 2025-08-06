@@ -91,6 +91,10 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (string, str
 	return accessToken, refreshToken, nil
 }
 
+func (s *service) GetUserInfo(ctx context.Context, userID uuid.UUID) (*user.User, error) {
+	return s.repository.GetByID(ctx, userID)
+}
+
 func (s *service) Update(ctx context.Context, id uuid.UUID, firstName, lastName string) error {
 	user, err := s.repository.GetByID(ctx, id)
 	if err != nil {
