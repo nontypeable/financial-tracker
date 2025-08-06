@@ -25,10 +25,17 @@ func NewHandler(service user.Service) *handler {
 
 func (h *handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler) http.Handler) {
 	r.Route("/user", func(r chi.Router) {
-		r.Post("/sign-up", h.signUp)
-		r.Post("/sign-in", h.signIn)
-		r.Post("/refresh", h.refresh)
-		r.With(authMiddleware).Post("/update", h.update)
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/sign-up", h.signUp)
+			r.Post("/sign-in", h.signIn)
+			r.Post("/refresh", h.refresh)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware)
+
+			r.Patch("/me", h.update)
+		})
 	})
 }
 
@@ -62,7 +69,7 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		Path:     "/user/refresh",
+		Path:     "/user/auth/refresh",
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
@@ -93,7 +100,7 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		Path:     "/user/refresh",
+		Path:     "/user/auth/refresh",
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
