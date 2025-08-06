@@ -21,12 +21,12 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	db, err := repository.NewPostgres(ctx, cfg.Database)
+	pool, err := repository.NewPostgres(ctx, cfg.Database)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	application := app.NewApp(cfg, db)
+	application := app.NewApp(cfg, pool)
 	if err := application.Start(); err != nil {
 		log.Fatalf("application error: %v", err)
 	}

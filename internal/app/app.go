@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 	customMiddleware "github.com/nontypeable/financial-tracker/internal/app/middleware"
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/config"
@@ -28,14 +28,14 @@ type App struct {
 	config *config.ServerConfig
 }
 
-func NewApp(cfg *config.Config, db *sql.DB) *App {
+func NewApp(cfg *config.Config, pool *pgxpool.Pool) *App {
 	app := App{
 		router: chi.NewRouter(),
 		config: cfg.Server,
 	}
 
 	app.setupMiddleware()
-	app.setupRoutes(cfg, db)
+	app.setupRoutes(cfg, pool)
 
 	return &app
 }
@@ -48,7 +48,7 @@ func (app *App) setupMiddleware() {
 	app.router.Use(middleware.Timeout(10 * time.Second))
 }
 
-func (app *App) setupRoutes(cfg *config.Config, db *sql.DB) {
+func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) {
 	app.router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("pong"))
@@ -57,7 +57,7 @@ func (app *App) setupRoutes(cfg *config.Config, db *sql.DB) {
 	tokenManager := auth.NewTokenManager(cfg.TokenManager.AccessSecret, cfg.TokenManager.RefreshSecret, cfg.TokenManager.AccessTTL, cfg.TokenManager.RefreshTTL)
 	authMiddleware := customMiddleware.AuthMiddleware(tokenManager)
 
-	userRepository := userRepository.NewRepository(db)
+	userRepository := userRepository.NewRepository(pool)
 	userUsecase := userUsecase.NewService(userRepository, tokenManager)
 	userHandler := userDelivery.NewHandler(userUsecase)
 	userHandler.RegisterRoutes(app.router, authMiddleware)
