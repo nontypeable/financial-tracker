@@ -35,6 +35,8 @@ func (h *handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 			r.Use(authMiddleware)
 
 			r.Patch("/me", h.update)
+			r.Patch("/me/email", h.updateEmail)
+			r.Patch("/me/password", h.updatePassword)
 		})
 	})
 }
@@ -148,6 +150,52 @@ func (h *handler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.service.Update(r.Context(), userID, payload.FirstName, payload.LastName)
+	if err != nil {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	httpHelper.JSON(w, http.StatusOK, nil)
+}
+
+func (h *handler) updateEmail(w http.ResponseWriter, r *http.Request) {
+	var payload dto.UpdateEmailRequest
+	err := httpHelper.DecodeAndValidate(r, &payload)
+	if err != nil {
+		httpHelper.Error(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	err = h.service.ChangeEmail(r.Context(), userID, payload.Email, payload.Password)
+	if err != nil {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	httpHelper.JSON(w, http.StatusOK, nil)
+}
+
+func (h *handler) updatePassword(w http.ResponseWriter, r *http.Request) {
+	var payload dto.UpdatePasswordRequest
+	err := httpHelper.DecodeAndValidate(r, &payload)
+	if err != nil {
+		httpHelper.Error(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	err = h.service.ChangePassword(r.Context(), userID, payload.NewPassword, payload.CurrentPassword)
 	if err != nil {
 		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
 		return
