@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 
@@ -15,7 +16,9 @@ func AuthMiddleware(tokenManager auth.TokenManager) func(http.Handler) http.Hand
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-				httpHelper.Error(w, http.StatusUnauthorized, "authorization header missing or malformed")
+				if err := httpHelper.Error(w, http.StatusUnauthorized, "authorization header missing or malformed"); err != nil {
+					log.Printf("httpHelper.Error: %v", err)
+				}
 				return
 			}
 
@@ -24,7 +27,9 @@ func AuthMiddleware(tokenManager auth.TokenManager) func(http.Handler) http.Hand
 			claims, err := tokenManager.ValidateAccessToken(token)
 			if err != nil {
 				w.Header().Set("X-Token-Expired", "true")
-				httpHelper.Error(w, http.StatusUnauthorized, "invalid or expired access token")
+				if err := httpHelper.Error(w, http.StatusUnauthorized, "invalid or expired access token"); err != nil {
+					log.Printf("httpHelper.Error: %v", err)
+				}
 				return
 			}
 

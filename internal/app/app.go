@@ -51,7 +51,10 @@ func (app *App) setupMiddleware() {
 func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) {
 	app.router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		_, err := w.Write([]byte("pong"))
+		if err != nil {
+			log.Printf("failed to write pong response: %v", err)
+		}
 	})
 
 	tokenManager := auth.NewTokenManager(cfg.TokenManager.AccessSecret, cfg.TokenManager.RefreshSecret, cfg.TokenManager.AccessTTL, cfg.TokenManager.RefreshTTL)
