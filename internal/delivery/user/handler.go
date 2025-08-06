@@ -34,6 +34,7 @@ func (h *handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware)
 
+			r.Get("/me", h.getUserInfo)
 			r.Patch("/me", h.update)
 			r.Patch("/me/email", h.updateEmail)
 			r.Patch("/me/password", h.updatePassword)
@@ -133,6 +134,22 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 	})
 
 	httpHelper.JSON(w, http.StatusOK, &dto.RefreshResponse{AccessToken: accessToken})
+}
+
+func (h *handler) getUserInfo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	user, err := h.service.GetUserInfo(r.Context(), userID)
+	if err != nil {
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	httpHelper.JSON(w, http.StatusOK, &dto.GetUserInfoResponse{Email: user.Email, FirstName: user.FirstName, LastName: user.LastName})
 }
 
 func (h *handler) update(w http.ResponseWriter, r *http.Request) {
