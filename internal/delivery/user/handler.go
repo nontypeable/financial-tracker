@@ -2,7 +2,6 @@ package user
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/nontypeable/financial-tracker/internal/auth"
@@ -58,11 +57,8 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		payload.LastName,
 	)
 	if err != nil {
-		if strings.Contains(err.Error(), "unique constraint") {
-			httpHelper.Error(w, http.StatusConflict, "user already registered")
-			return
-		}
-		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -93,7 +89,8 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		payload.Password,
 	)
 	if err != nil {
-		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -119,7 +116,8 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, refreshToken, err := h.service.Refresh(r.Context(), cookie.Value)
 	if err != nil {
-		httpHelper.Error(w, http.StatusUnauthorized, "invalid refresh token")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -145,7 +143,8 @@ func (h *handler) getUserInfo(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.service.GetUserInfo(r.Context(), userID)
 	if err != nil {
-		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -168,7 +167,8 @@ func (h *handler) update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.Update(r.Context(), userID, payload.FirstName, payload.LastName)
 	if err != nil {
-		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -191,7 +191,8 @@ func (h *handler) updateEmail(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.ChangeEmail(r.Context(), userID, payload.Email, payload.Password)
 	if err != nil {
-		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -214,7 +215,8 @@ func (h *handler) updatePassword(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.ChangePassword(r.Context(), userID, payload.NewPassword, payload.CurrentPassword)
 	if err != nil {
-		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 

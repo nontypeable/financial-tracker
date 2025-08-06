@@ -6,10 +6,13 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nontypeable/financial-tracker/internal/domain/user"
+	apperror "github.com/nontypeable/financial-tracker/internal/errors"
 )
 
 type repository struct {
@@ -37,7 +40,17 @@ func (r *repository) Create(ctx context.Context, user *user.User) (uuid.UUID, er
 	).Scan(&id)
 
 	if err != nil {
-		return uuid.Nil, err
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return uuid.Nil, apperror.ErrUserAlreadyExists
+			case pgerrcode.NotNullViolation, pgerrcode.CheckViolation:
+				return uuid.Nil, apperror.ErrInvalidInput
+			default:
+				return uuid.Nil, fmt.Errorf("create user: %w", err)
+			}
+		}
 	}
 
 	return id, nil
@@ -49,6 +62,7 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, err
         FROM users
         WHERE id = $1 AND deleted_at IS NULL
     `
+
 	var u user.User
 	var deletedAt pgtype.Timestamptz
 
@@ -62,9 +76,10 @@ func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, err
 		&u.UpdatedAt,
 		&deletedAt,
 	)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("user not found")
+			return nil, apperror.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
@@ -82,6 +97,7 @@ func (r *repository) GetByEmail(ctx context.Context, email string) (*user.User, 
         FROM users
         WHERE email = $1 AND deleted_at IS NULL
     `
+
 	var u user.User
 	var deletedAt pgtype.Timestamptz
 
@@ -95,9 +111,10 @@ func (r *repository) GetByEmail(ctx context.Context, email string) (*user.User, 
 		&u.UpdatedAt,
 		&deletedAt,
 	)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("user not found")
+			return nil, apperror.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
@@ -120,6 +137,7 @@ func (r *repository) Update(ctx context.Context, u *user.User) error {
         WHERE id = $5 AND deleted_at IS NULL
         RETURNING updated_at
     `
+
 	err := r.pool.QueryRow(ctx, query,
 		u.Email,
 		u.PasswordHash,
@@ -130,11 +148,21 @@ func (r *repository) Update(ctx context.Context, u *user.User) error {
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("user not found")
+			return apperror.ErrUserNotFound
 		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return apperror.ErrUserAlreadyExists
+			case pgerrcode.NotNullViolation, pgerrcode.CheckViolation:
+				return apperror.ErrInvalidInput
+			}
+		}
+
 		return fmt.Errorf("update user: %w", err)
 	}
-
 	return nil
 }
 
@@ -144,6 +172,7 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
         SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
     `
+
 	result, err := r.pool.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)

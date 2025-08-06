@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	apperror "github.com/nontypeable/financial-tracker/internal/errors"
 )
 
 type TokenManager interface {
@@ -26,11 +27,11 @@ type tokenManager struct {
 
 func NewTokenManager(accessSecret, refreshSecret string, accessTTL, refreshTTL time.Duration) TokenManager {
 	if accessSecret == "" || refreshSecret == "" {
-		panic("secrets cannot be empty")
+		panic(apperror.ErrEmptyTokenSecret.Error())
 	}
 
 	if accessTTL <= 0 || refreshTTL <= 0 {
-		panic("ttl values must be positive")
+		panic(apperror.ErrInvalidTokenLifetime.Error())
 	}
 
 	return &tokenManager{
@@ -43,38 +44,23 @@ func NewTokenManager(accessSecret, refreshSecret string, accessTTL, refreshTTL t
 
 func (tm *tokenManager) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	if userID == uuid.Nil {
-		return "", fmt.Errorf("invalid user ID")
+		return "", apperror.ErrInvalidUserID
 	}
 
-	claims := jwt.RegisteredClaims{
-		Subject:   userID.String(),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.accessTTL)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ID:        generateRandomString(32),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(tm.accessSecret))
+	return tm.generateToken(userID, tm.accessSecret, tm.accessTTL)
 }
 
 func (tm *tokenManager) GenerateRefreshToken(userID uuid.UUID) (string, error) {
 	if userID == uuid.Nil {
-		return "", fmt.Errorf("invalid user ID")
+		return "", apperror.ErrInvalidUserID
 	}
 
-	claims := jwt.RegisteredClaims{
-		Subject:   userID.String(),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.refreshTTL)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ID:        generateRandomString(32),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(tm.refreshSecret))
+	return tm.generateToken(userID, tm.refreshSecret, tm.refreshTTL)
 }
 
 func (tm *tokenManager) ValidateAccessToken(token string) (*jwt.RegisteredClaims, error) {
 	if token == "" {
-		return nil, fmt.Errorf("token is empty")
+		return nil, apperror.ErrTokenIsEmpty
 	}
 
 	return tm.parseToken(token, tm.accessSecret)
@@ -82,24 +68,43 @@ func (tm *tokenManager) ValidateAccessToken(token string) (*jwt.RegisteredClaims
 
 func (tm *tokenManager) ValidateRefreshToken(token string) (*jwt.RegisteredClaims, error) {
 	if token == "" {
-		return nil, fmt.Errorf("token is empty")
+		return nil, apperror.ErrTokenIsEmpty
 	}
 
 	return tm.parseToken(token, tm.refreshSecret)
+}
+
+func (tm *tokenManager) generateToken(userID uuid.UUID, secret string, ttl time.Duration) (string, error) {
+	now := time.Now()
+
+	claims := jwt.RegisteredClaims{
+		Subject:   userID.String(),
+		ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+		IssuedAt:  jwt.NewNumericDate(now),
+		ID:        generateRandomString(32),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	signedToken, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", fmt.Errorf("sign token: %w", err)
+	}
+
+	return signedToken, nil
 }
 
 func (tm *tokenManager) parseToken(tokenStr, secret string) (*jwt.RegisteredClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("invalid token: %w", err)
+		return nil, apperror.ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok || !token.Valid {
-		return nil, fmt.Errorf("invalid token claims")
+		return nil, apperror.ErrInvalidTokenClaims
 	}
 
 	return claims, nil
