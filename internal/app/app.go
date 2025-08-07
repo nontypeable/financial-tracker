@@ -16,10 +16,13 @@ import (
 	"github.com/nontypeable/financial-tracker/internal/auth"
 	"github.com/nontypeable/financial-tracker/internal/config"
 	accountDelivery "github.com/nontypeable/financial-tracker/internal/delivery/account"
+	transactionDelivery "github.com/nontypeable/financial-tracker/internal/delivery/transaction"
 	userDelivery "github.com/nontypeable/financial-tracker/internal/delivery/user"
 	accountRepository "github.com/nontypeable/financial-tracker/internal/repository/account"
+	transactionRepository "github.com/nontypeable/financial-tracker/internal/repository/transaction"
 	userRepository "github.com/nontypeable/financial-tracker/internal/repository/user"
 	accountUsecase "github.com/nontypeable/financial-tracker/internal/usecase/account"
+	transactionUsecase "github.com/nontypeable/financial-tracker/internal/usecase/transaction"
 	userUsecase "github.com/nontypeable/financial-tracker/internal/usecase/user"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -72,6 +75,11 @@ func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) {
 	accountUsecase := accountUsecase.NewService(accountRepository)
 	accountHandler := accountDelivery.NewHandler(accountUsecase)
 	accountHandler.RegisterRoutes(app.router, authMiddleware)
+
+	transactionRepository := transactionRepository.NewRepository(pool)
+	transactionUsecase := transactionUsecase.NewService(transactionRepository)
+	transactionHandler := transactionDelivery.NewHandler(transactionUsecase)
+	transactionHandler.RegisterRoutes(app.router, authMiddleware)
 }
 
 func (app *App) Start() error {

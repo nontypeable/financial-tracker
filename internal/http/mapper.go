@@ -17,6 +17,8 @@ func MapAppErrorToHTTP(err error) (status int, message string) {
 		return http.StatusNotFound, "user not found"
 	case errors.Is(err, apperror.ErrInvalidCredentials):
 		return http.StatusUnauthorized, "invalid credentials"
+	case errors.Is(err, apperror.ErrAccountNotFound):
+		return http.StatusNotFound, "account not found"
 	default:
 		return http.StatusInternalServerError, "internal server error"
 	}
