@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+
+	apperror "github.com/nontypeable/financial-tracker/internal/errors"
 )
 
 type Validable interface {
@@ -12,29 +15,31 @@ type Validable interface {
 
 func DecodeAndValidate[T any](r *http.Request, dest *T) error {
 	if r == nil {
-		return fmt.Errorf("request is nil")
+		return apperror.ErrNilRequest
 	}
 
 	if dest == nil {
-		return fmt.Errorf("destination is nil")
+		return apperror.ErrNilDestination
 	}
 
-	if r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodPatch {
-		return fmt.Errorf("unsupported method for JSON decoding: %s", r.Method)
+	switch r.Method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions:
+	default:
+		return fmt.Errorf("%w: %s", apperror.ErrUnsupportedMethod, r.Method)
 	}
 
 	contentType := r.Header.Get("Content-Type")
-	if contentType != "" && contentType != "application/json" {
-		return fmt.Errorf("unsupported content type: %s", contentType)
+	if contentType != "" && !strings.HasPrefix(contentType, "application/json") {
+		return fmt.Errorf("%w: got '%s'", apperror.ErrUnsupportedContentType, contentType)
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(dest); err != nil {
-		return fmt.Errorf("invalid JSON: %w", err)
+		return fmt.Errorf("%w: failed to decode json: %v", apperror.ErrInvalidInput, err)
 	}
 
 	if v, ok := any(dest).(Validable); ok {
 		if err := v.Validate(); err != nil {
-			return fmt.Errorf("validation failed: %w", err)
+			return fmt.Errorf("%w: %v", apperror.ErrValidationFailed, err)
 		}
 	}
 
