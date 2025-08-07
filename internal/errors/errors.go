@@ -16,4 +16,6 @@ var (
 	ErrInvalidTokenLifetime = errors.New("token TTL must be positive")
 
 	ErrAccountNotFound = errors.New("account is not found")
+
+	ErrTransactionNotFound = errors.New("transaction is not found")
 )

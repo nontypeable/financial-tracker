@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, transaction *Transaction) error
+	Create(ctx context.Context, transaction *Transaction) (uuid.UUID, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Transaction, error)
 	GetByAccountID(ctx context.Context, accountID uuid.UUID) ([]*Transaction, error)
 	Update(ctx context.Context, transaction *Transaction) error
