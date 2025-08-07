@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"log"
+	"fmt"
 	"sync"
 
 	"github.com/go-playground/validator/v10"
@@ -19,20 +19,15 @@ var (
 
 func GetValidator() *Validator {
 	once.Do(func() {
-		instance = &Validator{
-			validate: validator.New(),
+		v := validator.New()
+		if err := v.RegisterValidation("password", custom.ValidatePassword); err != nil {
+			panic(fmt.Sprintf("failed to register password validation: %v", err))
 		}
-		instance.registerCustomValidators()
+		instance = &Validator{validate: v}
 	})
 	return instance
 }
 
 func (v *Validator) ValidateStruct(s any) error {
 	return v.validate.Struct(s)
-}
-
-func (v *Validator) registerCustomValidators() {
-	if err := v.validate.RegisterValidation("password", custom.ValidatePassword); err != nil {
-		log.Printf("failed to register password validation: %v", err)
-	}
 }
