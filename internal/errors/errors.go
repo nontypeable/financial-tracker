@@ -14,4 +14,6 @@ var (
 	ErrInvalidTokenClaims   = errors.New("invalid token claims")
 	ErrEmptyTokenSecret     = errors.New("token secrets cannot be empty")
 	ErrInvalidTokenLifetime = errors.New("token TTL must be positive")
+
+	ErrAccountNotFound = errors.New("account is not found")
 )
