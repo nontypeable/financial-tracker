@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -35,18 +37,31 @@ type (
 	}
 )
 
+var (
+	cfg     *Config
+	once    sync.Once
+	loadErr error
+)
+
 func LoadConfig(path string) (*Config, error) {
-	v := viper.New()
-	v.SetConfigFile(path)
-	if err := v.ReadInConfig(); err != nil {
-		return nil, err
-	}
+	once.Do(func() {
+		v := viper.New()
+		v.SetConfigFile(path)
+		v.SetConfigType("yaml")
 
-	var cfg Config
-	err := v.Unmarshal(&cfg)
-	if err != nil {
-		return nil, err
-	}
+		if err := v.ReadInConfig(); err != nil {
+			loadErr = fmt.Errorf("failed to read config file: %w", err)
+			return
+		}
 
-	return &cfg, nil
+		var c Config
+		if err := v.Unmarshal(&c); err != nil {
+			loadErr = fmt.Errorf("failed to unmarshal config: %w", err)
+			return
+		}
+
+		cfg = &c
+	})
+
+	return cfg, loadErr
 }
