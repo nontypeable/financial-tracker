@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	apperror "github.com/nontypeable/financial-tracker/internal/errors"
 )
 
 type SuccessResponse struct {
@@ -17,39 +19,29 @@ type ErrorResponse struct {
 }
 
 func JSON(w http.ResponseWriter, statusCode int, data any) error {
-	if w == nil {
-		return fmt.Errorf("response writer is nil")
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(statusCode)
-
-	err := json.NewEncoder(w).Encode(SuccessResponse{
+	return writeJSON(w, statusCode, SuccessResponse{
 		StatusCode: statusCode,
 		Data:       data,
 	})
-	if err != nil {
-		return fmt.Errorf("failed to encode JSON response: %w", err)
-	}
-
-	return nil
 }
 
 func Error(w http.ResponseWriter, statusCode int, msg string) error {
+	return writeJSON(w, statusCode, ErrorResponse{
+		StatusCode: statusCode,
+		Error:      msg,
+	})
+}
+
+func writeJSON(w http.ResponseWriter, statusCode int, payload any) error {
 	if w == nil {
-		return fmt.Errorf("response writer is nil")
+		return apperror.ErrNilResponseWriter
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)
 
-	err := json.NewEncoder(w).Encode(ErrorResponse{
-		StatusCode: statusCode,
-		Error:      msg,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to encode JSON error response: %w", err)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		return fmt.Errorf("%w: failed to encode json: %v", apperror.ErrInvalidInput, err)
 	}
-
 	return nil
 }
