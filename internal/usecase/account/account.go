@@ -19,16 +19,16 @@ func NewService(repository account.Repository) account.Service {
 	return &service{repository: repository}
 }
 
-func (s *service) Create(ctx context.Context, userID uuid.UUID, name string, balance decimal.Decimal) error {
+func (s *service) Create(ctx context.Context, userID uuid.UUID, name string, balance decimal.Decimal) (uuid.UUID, error) {
 	account := account.NewAccount(userID, name, balance)
 
-	err := s.repository.Create(ctx, account)
+	accountID, err := s.repository.Create(ctx, account)
 	if err != nil {
 		if errors.Is(err, apperror.ErrInvalidInput) {
-			return apperror.ErrInvalidInput
+			return uuid.Nil, apperror.ErrInvalidInput
 		}
-		return fmt.Errorf("create account: %w", err)
+		return uuid.Nil, fmt.Errorf("create account: %w", err)
 	}
 
-	return nil
+	return accountID, nil
 }

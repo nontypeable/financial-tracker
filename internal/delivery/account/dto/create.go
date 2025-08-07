@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"github.com/google/uuid"
 	"github.com/nontypeable/financial-tracker/internal/validator"
 	"github.com/shopspring/decimal"
 )
@@ -12,4 +13,8 @@ type CreateRequest struct {
 
 func (r *CreateRequest) Validate() error {
 	return validator.GetValidator().ValidateStruct(r)
+}
+
+type CreateResponse struct {
+	ID uuid.UUID `json:"id"`
 }

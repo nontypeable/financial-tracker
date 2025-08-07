@@ -46,7 +46,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Create(r.Context(), userID, payload.Name, payload.Balance)
+	accountID, err := h.service.Create(r.Context(), userID, payload.Name, payload.Balance)
 	if err != nil {
 		log.Print(err.Error())
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
@@ -56,5 +56,5 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpHelper.JSON(w, http.StatusCreated, nil)
+	httpHelper.JSON(w, http.StatusCreated, &dto.CreateResponse{ID: accountID})
 }

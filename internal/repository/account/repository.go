@@ -22,7 +22,7 @@ func NewRepository(pool *pgxpool.Pool) account.Repository {
 	return &repository{pool: pool}
 }
 
-func (r *repository) Create(ctx context.Context, account *account.Account) error {
+func (r *repository) Create(ctx context.Context, account *account.Account) (uuid.UUID, error) {
 	query := `
 		INSERT INTO accounts (user_id, name, balance)
 		VALUES ($1, $2, $3)
@@ -42,13 +42,13 @@ func (r *repository) Create(ctx context.Context, account *account.Account) error
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.NotNullViolation, pgerrcode.CheckViolation:
-				return apperror.ErrInvalidInput
+				return uuid.Nil, apperror.ErrInvalidInput
 			}
 		}
-		return fmt.Errorf("failed to create account: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to create account: %w", err)
 	}
 
-	return nil
+	return id, nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*account.Account, error) {

@@ -8,5 +8,5 @@ import (
 )
 
 type Service interface {
-	Create(ctx context.Context, userID uuid.UUID, name string, balance decimal.Decimal) error
+	Create(ctx context.Context, userID uuid.UUID, name string, balance decimal.Decimal) (uuid.UUID, error)
 }
