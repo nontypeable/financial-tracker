@@ -56,5 +56,7 @@ func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpHelper.JSON(w, http.StatusCreated, &dto.CreateResponse{ID: accountID})
+	if err := httpHelper.JSON(w, http.StatusCreated, &dto.CreateResponse{ID: accountID}); err != nil {
+		log.Printf("httpHelper.JSON: %v", err)
+	}
 }
