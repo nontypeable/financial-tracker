@@ -17,10 +17,11 @@ type Account struct {
 	DeletedAt *time.Time      `db:"deleted_at"`
 }
 
-func NewAccount(userID uuid.UUID, name string) *Account {
+func NewAccount(userID uuid.UUID, name string, balance decimal.Decimal) *Account {
 	return &Account{
-		UserID: userID,
-		Name:   name,
+		UserID:  userID,
+		Name:    name,
+		Balance: balance,
 	}
 }
 
