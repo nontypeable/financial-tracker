@@ -46,6 +46,8 @@ func (r *repository) Create(ctx context.Context, transaction *transaction.Transa
 			switch pgErr.Code {
 			case pgerrcode.NotNullViolation, pgerrcode.CheckViolation:
 				return uuid.Nil, apperror.ErrInvalidInput
+			case pgerrcode.ForeignKeyViolation:
+				return uuid.Nil, apperror.ErrAccountNotFound
 			}
 		}
 		return uuid.Nil, fmt.Errorf("create transaction: %w", err)

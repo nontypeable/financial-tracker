@@ -28,6 +28,8 @@ func (s *service) Create(ctx context.Context, accountID uuid.UUID, amount decima
 	if err != nil {
 		if errors.Is(err, apperror.ErrInvalidInput) {
 			return uuid.Nil, apperror.ErrInvalidInput
+		} else if errors.Is(err, apperror.ErrAccountNotFound) {
+			return uuid.Nil, apperror.ErrAccountNotFound
 		}
 		return uuid.Nil, fmt.Errorf("create transaction: %w", err)
 	}
