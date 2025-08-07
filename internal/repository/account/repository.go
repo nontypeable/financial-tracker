@@ -25,15 +25,17 @@ func NewRepository(pool *pgxpool.Pool) account.Repository {
 func (r *repository) Create(ctx context.Context, account *account.Account) error {
 	query := `
 		INSERT INTO accounts (user_id, name, balance)
-		VALUES ($1, $2, $3);
+		VALUES ($1, $2, $3)
+		RETURNING id;
 	`
 
+	var id uuid.UUID
+
 	err := r.pool.QueryRow(ctx, query,
-		account.ID,
 		account.UserID,
 		account.Name,
 		account.Balance,
-	).Scan(&account.CreatedAt, &account.UpdatedAt)
+	).Scan(&id)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
