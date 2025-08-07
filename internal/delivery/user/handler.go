@@ -1,7 +1,6 @@
 package user
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -45,9 +44,8 @@ func (h *handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SignUpRequest
 	if err := httpHelper.DecodeAndValidate(r, &payload); err != nil {
-		if err := httpHelper.Error(w, http.StatusBadRequest, "invalid json payload"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -60,9 +58,7 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -76,26 +72,21 @@ func (h *handler) signUp(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
-	if err := httpHelper.JSON(w, http.StatusCreated, &dto.SignUpResponse{AccessToken: accessToken}); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	httpHelper.JSON(w, http.StatusCreated, &dto.SignUpResponse{AccessToken: accessToken})
 }
 
 func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SignInRequest
 	if err := httpHelper.DecodeAndValidate(r, &payload); err != nil {
-		if err := httpHelper.Error(w, http.StatusBadRequest, "invalid json payload"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
 	accessToken, refreshToken, err := h.service.SignIn(r.Context(), payload.Email, payload.Password)
 	if err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -109,26 +100,21 @@ func (h *handler) signIn(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
-	if err := httpHelper.JSON(w, http.StatusOK, &dto.SignInResponse{AccessToken: accessToken}); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	httpHelper.JSON(w, http.StatusOK, &dto.SignInResponse{AccessToken: accessToken})
 }
 
 func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
-		if err := httpHelper.Error(w, http.StatusUnauthorized, "missing refresh token"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
 	accessToken, refreshToken, err := h.service.Refresh(r.Context(), cookie.Value)
 	if err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
@@ -142,124 +128,94 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
-	if err := httpHelper.JSON(w, http.StatusOK, &dto.RefreshResponse{AccessToken: accessToken}); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	httpHelper.JSON(w, http.StatusOK, &dto.RefreshResponse{AccessToken: accessToken})
 }
 
 func (h *handler) getUserInfo(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {
-		if err := httpHelper.Error(w, http.StatusInternalServerError, "internal server error"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	user, err := h.service.GetUserInfo(r.Context(), userID)
 	if err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
-	if err := httpHelper.JSON(w, http.StatusOK, &dto.GetUserInfoResponse{
+	httpHelper.JSON(w, http.StatusOK, &dto.GetUserInfoResponse{
 		Email:     user.Email,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
-	}); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	})
 }
 
 func (h *handler) update(w http.ResponseWriter, r *http.Request) {
 	var payload dto.UpdateRequest
 	if err := httpHelper.DecodeAndValidate(r, &payload); err != nil {
-		if err := httpHelper.Error(w, http.StatusBadRequest, "invalid json payload"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {
-		if err := httpHelper.Error(w, http.StatusInternalServerError, "internal server error"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	if err := h.service.Update(r.Context(), userID, payload.FirstName, payload.LastName); err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
-	if err := httpHelper.JSON(w, http.StatusOK, nil); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	httpHelper.JSON(w, http.StatusOK, nil)
 }
 
 func (h *handler) updateEmail(w http.ResponseWriter, r *http.Request) {
 	var payload dto.UpdateEmailRequest
 	if err := httpHelper.DecodeAndValidate(r, &payload); err != nil {
-		if err := httpHelper.Error(w, http.StatusBadRequest, "invalid json payload"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, http.StatusBadRequest, "invalid json payload")
 		return
 	}
 
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {
-		if err := httpHelper.Error(w, http.StatusInternalServerError, "internal server error"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	if err := h.service.ChangeEmail(r.Context(), userID, payload.Email, payload.Password); err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
-	if err := httpHelper.JSON(w, http.StatusOK, nil); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	httpHelper.JSON(w, http.StatusOK, nil)
 }
 
 func (h *handler) updatePassword(w http.ResponseWriter, r *http.Request) {
 	var payload dto.UpdatePasswordRequest
 	if err := httpHelper.DecodeAndValidate(r, &payload); err != nil {
-		if err := httpHelper.Error(w, http.StatusBadRequest, "invalid json payload"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {
-		if err := httpHelper.Error(w, http.StatusInternalServerError, "internal server error"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	if err := h.service.ChangePassword(r.Context(), userID, payload.NewPassword, payload.CurrentPassword); err != nil {
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
-	if err := httpHelper.JSON(w, http.StatusOK, nil); err != nil {
-		log.Printf("httpHelper.JSON: %v", err)
-	}
+	httpHelper.JSON(w, http.StatusOK, nil)
 }

@@ -25,13 +25,13 @@ type tokenManager struct {
 	refreshTTL    time.Duration
 }
 
-func NewTokenManager(accessSecret, refreshSecret string, accessTTL, refreshTTL time.Duration) TokenManager {
+func NewTokenManager(accessSecret, refreshSecret string, accessTTL, refreshTTL time.Duration) (TokenManager, error) {
 	if accessSecret == "" || refreshSecret == "" {
-		panic(apperror.ErrEmptyTokenSecret.Error())
+		return nil, apperror.ErrEmptyTokenSecret
 	}
 
 	if accessTTL <= 0 || refreshTTL <= 0 {
-		panic(apperror.ErrInvalidTokenLifetime.Error())
+		return nil, apperror.ErrInvalidTokenLifetime
 	}
 
 	return &tokenManager{
@@ -39,7 +39,7 @@ func NewTokenManager(accessSecret, refreshSecret string, accessTTL, refreshTTL t
 		refreshSecret: refreshSecret,
 		accessTTL:     accessTTL,
 		refreshTTL:    refreshTTL,
-	}
+	}, nil
 }
 
 func (tm *tokenManager) GenerateAccessToken(userID uuid.UUID) (string, error) {

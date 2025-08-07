@@ -2,12 +2,10 @@ package account
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nontypeable/financial-tracker/internal/domain/account"
-	apperror "github.com/nontypeable/financial-tracker/internal/errors"
 	"github.com/shopspring/decimal"
 )
 
@@ -24,9 +22,6 @@ func (s *service) Create(ctx context.Context, userID uuid.UUID, name string, bal
 
 	accountID, err := s.repository.Create(ctx, account)
 	if err != nil {
-		if errors.Is(err, apperror.ErrInvalidInput) {
-			return uuid.Nil, apperror.ErrInvalidInput
-		}
 		return uuid.Nil, fmt.Errorf("create account: %w", err)
 	}
 

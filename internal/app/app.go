@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -54,7 +55,7 @@ func (app *App) setupMiddleware() {
 	app.router.Use(middleware.Timeout(10 * time.Second))
 }
 
-func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) {
+func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) error {
 	app.router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("pong"))
@@ -63,7 +64,11 @@ func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) {
 		}
 	})
 
-	tokenManager := auth.NewTokenManager(cfg.TokenManager.AccessSecret, cfg.TokenManager.RefreshSecret, cfg.TokenManager.AccessTTL, cfg.TokenManager.RefreshTTL)
+	tokenManager, err := auth.NewTokenManager(cfg.TokenManager.AccessSecret, cfg.TokenManager.RefreshSecret, cfg.TokenManager.AccessTTL, cfg.TokenManager.RefreshTTL)
+	if err != nil {
+		return fmt.Errorf("create token manager: %w", err)
+	}
+
 	authMiddleware := customMiddleware.AuthMiddleware(tokenManager)
 
 	userRepository := userRepository.NewRepository(pool)
@@ -80,6 +85,8 @@ func (app *App) setupRoutes(cfg *config.Config, pool *pgxpool.Pool) {
 	transactionUsecase := transactionUsecase.NewService(transactionRepository)
 	transactionHandler := transactionDelivery.NewHandler(transactionUsecase)
 	transactionHandler.RegisterRoutes(app.router, authMiddleware)
+
+	return nil
 }
 
 func (app *App) Start() error {

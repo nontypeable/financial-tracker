@@ -33,20 +33,15 @@ func (h *handler) RegisterRoutes(r chi.Router, authMiddleware func(http.Handler)
 func (h *handler) create(w http.ResponseWriter, r *http.Request) {
 	var payload dto.CreateRequest
 	if err := httpHelper.DecodeAndValidate(r, &payload); err != nil {
-		log.Print(err.Error())
-		if err := httpHelper.Error(w, http.StatusBadRequest, "invalid json payload"); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		status, msg := httpHelper.MapAppErrorToHTTP(err)
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
 	id, err := h.service.Create(r.Context(), payload.AccountID, payload.Amount, payload.Type, payload.Description)
 	if err != nil {
-		log.Print(err.Error())
 		status, msg := httpHelper.MapAppErrorToHTTP(err)
-		if err := httpHelper.Error(w, status, msg); err != nil {
-			log.Printf("httpHelper.Error: %v", err)
-		}
+		httpHelper.Error(w, status, msg)
 		return
 	}
 
