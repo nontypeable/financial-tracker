@@ -32,9 +32,12 @@ func NewUser(email, password, firstName, lastName string) (*User, error) {
 	}, nil
 }
 
-func (u *User) CheckPassword(password string) bool {
+func (u *User) CheckPassword(password string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
-	return err == nil
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 func (u *User) Delete() {
